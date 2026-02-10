@@ -6,8 +6,8 @@ import Navbar from '@/components/Navbar';
 export default function ConditionalNavbar() {
     const pathname = usePathname();
 
-    // Hide navbar on admin routes to prevent overlap
-    const isAdminRoute = pathname.startsWith('/admin');
+    // Hide navbar on admin and backend routes to prevent overlap
+    const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/backend');
 
     if (isAdminRoute) return null;
 

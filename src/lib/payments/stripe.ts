@@ -33,3 +33,37 @@ export const createEscrowCheckoutSession = async (
 
     return session;
 };
+
+/**
+ * Retrieve checkout session details
+ */
+export const getCheckoutSession = async (sessionId: string) => {
+    try {
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        return session;
+    } catch (error: any) {
+        console.error('Error retrieving Stripe session:', error);
+        throw new Error(`Failed to retrieve session: ${error.message}`);
+    }
+};
+
+/**
+ * Refund a Stripe payment
+ */
+export const refundStripePayment = async (paymentIntentId: string, amount?: number) => {
+    try {
+        const refundData: any = {
+            payment_intent: paymentIntentId
+        };
+
+        if (amount) {
+            refundData.amount = Math.round(amount * 100); // Convert to cents
+        }
+
+        const refund = await stripe.refunds.create(refundData);
+        return refund;
+    } catch (error: any) {
+        console.error('Error processing Stripe refund:', error);
+        throw new Error(`Failed to process refund: ${error.message}`);
+    }
+};

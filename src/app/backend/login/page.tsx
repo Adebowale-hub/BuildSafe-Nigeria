@@ -26,11 +26,17 @@ export default function AdminLoginPage() {
 
             if (authError) throw authError;
 
-            // Immediately check role
-            const role = data.user?.user_metadata?.role;
-            if (role !== 'admin') {
+            // Fetch role from profiles table instead of metadata
+            // This is more reliable if the admin updates roles manually in the DB
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', data.user.id)
+                .single();
+
+            if (profileError || profile?.role !== 'admin') {
                 await supabase.auth.signOut();
-                throw new Error("Access Denied: This portal is for authorized administrators only.");
+                throw new Error("Access Denied: Your account does not have administrator privileges.");
             }
 
             router.push('/admin');

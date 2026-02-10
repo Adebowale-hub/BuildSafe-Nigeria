@@ -8,6 +8,8 @@ import { Shield, Clock, CheckCircle2, AlertCircle, FileText, Camera, CreditCard,
 import Link from 'next/link';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import EscrowPaymentModal from '@/components/EscrowPaymentModal';
+import PaymentReleaseModal from '@/components/PaymentReleaseModal';
 
 export default function ProjectDashboard({ params }: { params: { id: string } }) {
     const { user, profile, loading: authLoading } = useAuth();
@@ -15,6 +17,8 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
     const [milestones, setMilestones] = useState<Milestone[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedMilestoneForFunding, setSelectedMilestoneForFunding] = useState<Milestone | null>(null);
+    const [selectedMilestoneForRelease, setSelectedMilestoneForRelease] = useState<Milestone | null>(null);
 
     useEffect(() => {
         if (!user || !params.id) return;
@@ -52,6 +56,33 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
 
         fetchProjectData();
     }, [user, params.id]);
+
+    const refreshMilestones = async () => {
+        if (!params.id) return;
+
+        try {
+            const { data: milestoneData, error: milestoneError } = await supabase
+                .from('milestones')
+                .select('*')
+                .eq('project_id', params.id)
+                .order('order', { ascending: true });
+
+            if (milestoneError) throw milestoneError;
+            setMilestones(milestoneData as Milestone[]);
+        } catch (err: any) {
+            console.error('Error refreshing milestones:', err);
+        }
+    };
+
+    const handlePaymentSuccess = () => {
+        setSelectedMilestoneForFunding(null);
+        refreshMilestones();
+    };
+
+    const handleReleaseSuccess = () => {
+        setSelectedMilestoneForRelease(null);
+        refreshMilestones();
+    };
 
     if (authLoading || loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#008751]"></div></div>;
 
@@ -204,12 +235,18 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
                                                 </button>
                                             )}
                                             {profile?.role === 'client' && m.status === 'pending' && (
-                                                <button className="bg-[#008751] text-white px-6 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
+                                                <button
+                                                    onClick={() => setSelectedMilestoneForFunding(m)}
+                                                    className="bg-[#008751] text-white px-6 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+                                                >
                                                     Fund Milestone
                                                 </button>
                                             )}
                                             {profile?.role === 'client' && m.status === 'submitted' && (
-                                                <button className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
+                                                <button
+                                                    onClick={() => setSelectedMilestoneForRelease(m)}
+                                                    className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+                                                >
                                                     Release Payment
                                                 </button>
                                             )}
@@ -266,6 +303,25 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
                     </div>
                 </div>
             </main>
+
+            {/* Payment Modals */}
+            {selectedMilestoneForFunding && project && (
+                <EscrowPaymentModal
+                    milestone={selectedMilestoneForFunding}
+                    project={project}
+                    onClose={() => setSelectedMilestoneForFunding(null)}
+                    onSuccess={handlePaymentSuccess}
+                />
+            )}
+
+            {selectedMilestoneForRelease && project && (
+                <PaymentReleaseModal
+                    milestone={selectedMilestoneForRelease}
+                    currency={project.currency}
+                    onConfirm={handleReleaseSuccess}
+                    onCancel={() => setSelectedMilestoneForRelease(null)}
+                />
+            )}
         </div>
     );
 }

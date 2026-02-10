@@ -163,7 +163,9 @@ BEGIN
     new.id, 
     COALESCE(
       new.raw_user_meta_data->>'full_name',
-      TRIM((new.raw_user_meta_data->>'first_name') || ' ' || (new.raw_user_meta_data->>'last_name'))
+      TRIM((new.raw_user_meta_data->>'first_name') || ' ' || (new.raw_user_meta_data->>'last_name')),
+      split_part(new.email, '@', 1),
+      'New User'
     ),
     new.raw_user_meta_data->>'avatar_url',
     COALESCE(new.raw_user_meta_data->>'role', 'client')
