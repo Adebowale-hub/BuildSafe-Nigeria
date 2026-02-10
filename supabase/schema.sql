@@ -149,6 +149,21 @@ BEGIN
     END IF;
 END $$;
 
+-- Escrow Transactions: Viewable by project participants (client and builder)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Escrow transactions viewable by project participants') THEN
+        CREATE POLICY "Escrow transactions viewable by project participants" ON escrow_transactions FOR SELECT USING (
+          EXISTS (
+            SELECT 1 FROM milestones m
+            JOIN projects p ON p.id = m.project_id
+            WHERE m.id = escrow_transactions.milestone_id 
+            AND (p.client_id = auth.uid() OR p.builder_id = auth.uid())
+          )
+        );
+    END IF;
+END $$;
+
 -- Functions
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS trigger AS $$
